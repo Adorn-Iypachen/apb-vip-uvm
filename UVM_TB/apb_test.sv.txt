@@ -1,0 +1,187 @@
+class apb_test extends uvm_test;
+  `uvm_component_utils(apb_test)
+  
+  apb_env env;
+  
+  
+  apb_config cfg;
+  
+  function new(string name="apb_test",uvm_component parent);
+    super.new(name,parent);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    
+    cfg=apb_config::type_id::create("cfg");
+    
+    if(!uvm_config_db#(virtual apb_if)::get(this,"","vif",cfg.vif))
+      `uvm_fatal(get_type_name(),"cannot get interface")
+      
+      cfg.has_magent=1;
+      cfg.has_sagent=1;
+      cfg.has_scoreboard=1;
+      cfg.m_is_active=UVM_ACTIVE;
+      cfg.s_is_active=UVM_PASSIVE;
+    
+    uvm_config_db#(apb_config)::set(this,"*","apb_config",cfg);
+    
+    env=apb_env::type_id::create("env",this);
+    
+  endfunction
+ 
+endclass
+
+
+//single read and write test
+
+class single_test extends apb_test;
+  
+  `uvm_component_utils(single_test)
+  
+  single_write seq1;
+  single_read seq2;
+
+  
+  function new(string name="single_test",uvm_component parent);
+    super.new(name,parent);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+  endfunction
+  
+  task run_phase(uvm_phase phase);
+    phase.raise_objection(this);
+    
+    seq1=single_write::type_id::create("seq1");
+    seq2=single_read::type_id::create("seq2");
+    
+    fork
+          seq1.start(env.m_agt.seqr);   		//single write
+          seq2.start(env.m_agt.seqr);    		//single read
+
+    join
+      
+    
+    #10;
+    phase.drop_objection(this);
+    
+  endtask
+ 
+endclass
+
+
+//multiple read and write test
+
+class multiple_test extends apb_test;
+  `uvm_component_utils(multiple_test)
+  
+
+  multiple_write seq3;
+  multiple_read seq4;
+
+  function new(string name="multiple_test",uvm_component parent);
+    super.new(name,parent);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+  endfunction
+  
+  task run_phase(uvm_phase phase);
+    phase.raise_objection(this);
+
+    seq3=multiple_write::type_id::create("seq3");
+    seq4=multiple_read::type_id::create("seq4");
+    
+    fork
+      seq3.start(env.m_agt.seqr);					//multiple write
+      seq4.start(env.m_agt.seqr);					//multiple read
+    join
+
+    
+    #10;
+    phase.drop_objection(this);
+    
+  endtask
+ 
+endclass
+
+
+
+//continuous read and write test
+
+class continuous_test extends apb_test;
+  `uvm_component_utils(continuous_test)
+  
+
+  multiple_write seq3;
+  multiple_read seq4;
+
+  function new(string name="continuous_test",uvm_component parent);
+    super.new(name,parent);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+  endfunction
+  
+  task run_phase(uvm_phase phase);
+    phase.raise_objection(this);
+
+    seq3=multiple_write::type_id::create("seq3");
+    seq4=multiple_read::type_id::create("seq4");
+
+      
+      fork
+     	begin 
+       		seq3.start(env.m_agt.seqr);					//continuous write
+     	end
+     join
+    
+    fork 
+      begin
+    seq4.start(env.m_agt.seqr);						//continuous read
+      end      
+    join	
+    
+    #10;
+    phase.drop_objection(this);
+    
+  endtask
+ 
+endclass
+
+
+//back2back test
+class back2back_test extends apb_test;
+  `uvm_component_utils(back2back_test)
+  
+  back2back_seq seq5;
+
+  
+  function new(string name="back2back_test",uvm_component parent);
+    super.new(name,parent);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+  endfunction
+  
+  task run_phase(uvm_phase phase);
+    phase.raise_objection(this);
+    
+    seq5=back2back_seq::type_id::create("seq5");
+
+   
+          seq5.start(env.m_agt.seqr);   		
+
+      
+    
+    #10;
+    phase.drop_objection(this);
+    
+  endtask
+ 
+endclass

@@ -1,0 +1,152 @@
+module prop_mod (apb_if in);
+  
+//state transition check
+sequence idle;
+  !(in.Psel) && !(in.Penable);
+endsequence
+  
+sequence setup;
+  in.Psel && !(in.Penable);
+endsequence
+
+
+sequence access;
+  in.Psel && in.Penable && in.Pready;
+endsequence
+
+sequence access_wait;
+  in.Psel && in.Penable && !(in.Pready);
+endsequence
+
+property idle_state;
+  @(posedge in.Pclk) disable iff(!in.Presetn)
+  	idle |=> idle or setup;
+endproperty
+
+property setup_state;
+  @(posedge in.Pclk) disable iff(!in.Presetn)
+  	setup |=> access or access_wait;
+endproperty
+
+property access_state;
+  @(posedge in.Pclk) disable iff(!in.Presetn)
+    access |=> setup or idle;
+endproperty
+
+property access_wait_state;
+  @(posedge in.Pclk) disable iff (!in.Presetn)
+    access_wait |=> access or access_wait;
+endproperty
+
+//Assertions
+
+IDLE_: assert property(idle_state)
+  else $display("[%0t],Error!",$time);
+  
+SETUP: assert property(setup_state)
+  else $display("[%0t], Error!,setup must proceed to access",$time);
+    
+ACCESS: assert property(access_state)
+  else $display("[%0t], Error!,After a transfer, must proceed to idle(psel=0) or setup(psel=1,penable=0)",$time);
+    
+  ACCESS_WAIT: assert property(access_wait_state)
+    else $display("[%0t], Error!,stay in wait state or proceed to access",$time);
+
+    
+//===================================================================
+    
+//Unknown checks
+    
+    property paddr_unknown;
+      @(posedge in.Pclk) disable iff (!in.Presetn)
+      (in.Psel && in.Penable) |-> !$isunknown(in.Paddr);
+    endproperty
+    
+    property pwdata_unknown;
+      @(posedge in.Pclk) disable iff (!in.Presetn)
+      (in.Psel && in.Penable && in.Pwrite) |-> !$isunknown(in.Pwdata);
+    endproperty
+    
+    property prdata_unknown;
+      @(posedge in.Pclk) disable iff (!in.Presetn)
+      (in.Psel && in.Penable && !in.Pwrite) |-> !$isunknown(in.Prdata);
+    endproperty
+    
+    //parametrised property to check unknown
+    
+    property param_unknown(signal);
+      @(posedge in.Pclk) disable iff (!in.Presetn)
+      !$isunknown(signal);
+    endproperty
+       
+//Assertions
+    
+    PADDR_X_Z:assert property(paddr_unknown)
+       else $display("[%0t], Error!, Paddr is X/Z during transfer",$time);
+      
+    PWDATA_X_Z: assert property(pwdata_unknown)
+       else $display("[%0t], Error!, Pwdata is X/Z during transfer",$time);
+        
+   PRDATA_X_Z: assert property(prdata_unknown)
+       else $display("[%0t], Error!, Prdata is X/Z during transfer",$time);
+          
+   PSEL_X_Z: assert property(param_unknown(in.Psel))
+       else $display("[%0t], Error!, Psel is X/Z",$time);
+                    
+     PENABLE_X_Z: assert property(param_unknown(in.Penable))
+       else $display("[%0t],ERROR!, Penable is X/Z",$time);
+                                
+   PWRITE_X_Z: assert property(param_unknown(in.Pwrite))
+       else $display("[%0t], Error!, Pwrite is X/Z",$time);
+                    
+     PREADY_X_Z: assert property(param_unknown(in.Pready))
+       else $display("[%0t],ERROR!, Pready is X/Z",$time);
+
+//==============================================================
+       
+       
+//signal stability checks during transfer
+       
+       property param_stable(signal);
+         @(posedge in.Pclk) disable iff (!in.Presetn)
+         !$stable(signal) |-> setup or idle;
+       endproperty
+       
+       //pwdata - stable only during write transfer
+       property pwdata_stable;
+         @(posedge in.Pclk) disable iff(!in.Presetn)
+         !$stable(in.Pwdata) |-> !in.Pwrite or setup or idle;
+       endproperty
+       
+       //penable should be stable during transfer
+       property penable_stable;
+         @(posedge in.Pclk) disable iff(!in.Presetn)
+         $fell(in.Penable) |-> idle or ($past(in.Penable) && $past(in.Pready));
+       endproperty
+       
+       //Psel should be stable during transfer
+       property psel_stable;
+         @(posedge in.Pclk) disable iff(!in.Presetn)
+         !in.Psel && $past(in.Psel) |-> $past(in.Penable) && $past(in.Pready);
+       endproperty
+       
+//Assertions
+       
+       PADDR_STABLE: assert property(param_stable(in.Paddr))
+         else $display("[%0t],ERROR!,Paddr must not change throughout the transfer",$time);
+         
+         PWRITE_STABLE: assert property(param_stable(in.Pwrite))
+           else $display("[%0t],ERROR!,Pwrite must not change throughout the transfer",$time);
+           
+           PWDATA_STABLE: assert property(pwdata_stable)
+             else $display("[%0t],ERROR!,Pwdata must not change throughout the write transfer",$time);
+             
+             PENABLE_STABLE: assert property(penable_stable)
+               else $display("[%0t],ERROR!,Penable must not change throughout the transfer",$time);
+                                    
+               PSEL_STABLE: assert property(psel_stable)
+                 else $display("[%0t],ERROR!,Psel must not change throughout the transfer",$time);  
+                 
+endmodule
+    
+    

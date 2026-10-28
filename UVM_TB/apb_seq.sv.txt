@@ -1,0 +1,139 @@
+class apb_seq extends uvm_sequence#(apb_trans);
+  `uvm_object_utils(apb_seq)
+  
+  function new(string name="apb_seq");
+    super.new(name);
+  endfunction
+  
+  
+/*  virtual task body;
+    repeat(3)
+      begin
+        req=apb_trans::type_id::create("req");
+        start_item(req);
+        req.randomize();
+        finish_item(req);
+      end
+    fork
+//    repeat(2)
+      `uvm_do_with(req,{req.Pwrite==1;req.Psel==1;req.Paddr==0;})
+//    repeat(2)
+      `uvm_do_with(req,{req.Pwrite==0;req.Psel==1;req.Paddr==0;})
+      join
+  endtask*/
+endclass
+
+
+class single_write extends apb_seq;
+  `uvm_object_utils(single_write)
+  
+    function new(string name="single_write");
+    super.new(name);
+  endfunction
+  
+  task body();
+    begin
+      req=apb_trans::type_id::create("req");
+        start_item(req);
+      req.randomize() with {Pwrite==1;Psel==1;Paddr==0;};
+        finish_item(req);
+      end
+  endtask
+  
+endclass
+
+
+
+class single_read extends apb_seq;
+  `uvm_object_utils(single_read)
+  
+    function new(string name="single_read");
+    super.new(name);
+  endfunction
+  
+  task body();
+    begin
+      req=apb_trans::type_id::create("req");
+        start_item(req);
+      req.randomize() with {Pwrite==0;Psel==1;Paddr==0;};
+        finish_item(req);
+      end
+  endtask
+  
+endclass
+
+class multiple_write extends apb_seq;
+  `uvm_object_utils(multiple_write)
+  
+    function new(string name="multiple_write");
+    super.new(name);
+  endfunction
+  
+  task body();
+    int addr;
+    addr=0;
+    repeat(3)
+    begin
+      req=apb_trans::type_id::create("req");
+        start_item(req);
+      req.randomize() with {Pwrite==1;Psel==1;Paddr==addr;};
+        finish_item(req);
+      addr=addr+1;
+      end
+  endtask
+  
+endclass
+
+
+class multiple_read extends apb_seq;
+  `uvm_object_utils(multiple_read)
+  
+    function new(string name="multiple_read");
+    super.new(name);
+  endfunction
+  
+  task body();
+    int addr;
+    addr=0;
+    repeat(3)
+    begin
+      req=apb_trans::type_id::create("req");
+        start_item(req);
+      req.randomize() with {Pwrite==0;Psel==1;Paddr==addr;};
+        finish_item(req);
+      addr=addr+1;
+      end
+  endtask
+  
+endclass
+
+
+
+
+
+class back2back_seq extends apb_seq;
+  `uvm_object_utils(back2back_seq)
+  
+    function new(string name="back2back_seq");
+    super.new(name);
+  endfunction
+  
+  task body();
+    int addr;
+    addr=0;
+    repeat(5)
+    begin
+      req=apb_trans::type_id::create("req");
+        start_item(req);
+      req.randomize() with {Pwrite==1;Psel==1;Paddr==addr;};
+        finish_item(req);
+      
+      req=apb_trans::type_id::create("req");
+        start_item(req);
+      req.randomize() with {Pwrite==0;Psel==1;Paddr==addr;};
+        finish_item(req);
+      addr=addr+1;
+      end
+  endtask
+  
+endclass

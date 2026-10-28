@@ -1,0 +1,53 @@
+class apb_sb extends uvm_scoreboard;
+  `uvm_component_utils(apb_sb)
+  
+  uvm_tlm_analysis_fifo#(apb_trans) fifo_wrh;
+  uvm_tlm_analysis_fifo#(apb_trans) fifo_rdh;
+  
+  apb_trans xtn1,xtn2;
+  function new(string name,uvm_component parent);
+    super.new(name,parent);
+    fifo_wrh=new("fifo_wrh",this);
+    fifo_rdh=new("fifo_rdh",this);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    
+    xtn1=apb_trans::type_id::create("xtn1");
+    xtn2=apb_trans::type_id::create("xtn2");
+  endfunction
+  
+  task run_phase(uvm_phase phase);
+    fork
+    	forever
+          		begin
+                  fifo_wrh.get(xtn1);
+                  `uvm_info(get_type_name(),"data received from master_monitor",UVM_MEDIUM)
+                  xtn1.print;
+                  
+                  fifo_rdh.get(xtn2);
+                  `uvm_info(get_type_name(),"data received from slave_monitor",UVM_MEDIUM)
+                  xtn2.print;
+                  check_data();
+                end
+    join
+  endtask
+  
+  
+  task check_data();
+    
+ //   if(!xtn1.Pwrite)begin
+      if(xtn1.Pwdata==xtn2.Prdata)begin
+        $display("data matches");
+      end
+      else
+        $display("data mismatch");
+//    end
+    
+  endtask
+  
+  
+endclass
+
+  

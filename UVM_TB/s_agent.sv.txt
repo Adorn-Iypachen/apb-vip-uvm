@@ -1,0 +1,22 @@
+class s_agent extends uvm_agent;
+  `uvm_component_utils(s_agent)
+  
+   apb_s_monitor mon;
+  apb_config cfg;
+  
+  function new(string name="s_agent",uvm_component parent);
+    super.new(name,parent);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    if(!uvm_config_db#(apb_config)::get(this,"","apb_config",cfg))
+      `uvm_fatal(get_type_name(),"cannot get cfg")
+    
+      mon=apb_s_monitor::type_id::create("mon",this);
+   /* if(cfg.s_is_active == UVM_PASSIVE)
+      begin
+        smon=apb_s_mon::type_id::create("smon",this);
+      end*/
+  endfunction
+endclass

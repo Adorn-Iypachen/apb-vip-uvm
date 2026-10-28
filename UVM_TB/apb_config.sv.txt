@@ -1,0 +1,17 @@
+class apb_config extends uvm_object;
+  `uvm_object_utils(apb_config)
+  
+  virtual apb_if vif;
+  
+  bit has_magent=1;
+  bit has_sagent=1;
+  bit has_scoreboard=1;
+  
+  uvm_active_passive_enum m_is_active=UVM_ACTIVE;
+  uvm_active_passive_enum s_is_active=UVM_PASSIVE;
+  
+  function new(string name="apb_config");
+    super.new(name);
+  endfunction
+  
+endclass

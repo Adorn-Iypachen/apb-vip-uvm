@@ -1,0 +1,57 @@
+class apb_s_monitor extends uvm_monitor;
+  `uvm_component_utils(apb_s_monitor)
+  
+  virtual apb_if.OMON_MP vif;
+  
+  uvm_analysis_port #(apb_trans) monitor_port;
+  apb_config cfg;
+  
+  apb_trans xtn;
+  
+  function new(string name="apb_s_monitor",uvm_component parent);
+    super.new(name,parent);
+    monitor_port=new("monitor_port",this);
+  endfunction
+  
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    
+    if(!uvm_config_db#(apb_config)::get(this,"","apb_config",cfg))
+      `uvm_fatal(get_type_name(),"cannot get cfg")
+    
+  endfunction
+  
+  function void connect_phase(uvm_phase phase);
+    vif=cfg.vif;
+  endfunction
+  
+  task run_phase(uvm_phase phase);
+   
+    forever
+      begin
+        
+      collect_data();
+      end
+  endtask
+  
+  task collect_data();
+     xtn=apb_trans::type_id::create("xtn");
+    @(vif.omon_cb);
+    if(vif.omon_cb.Penable && vif.omon_cb.Psel && !vif.omon_cb.Pwrite)
+      wait(vif.omon_cb.Pready)
+      begin
+ //   @(vif.omon_cb);
+    xtn.Paddr   = vif.omon_cb.Paddr;
+        xtn.Pwrite  = vif.omon_cb.Pwrite;
+        xtn.Psel    = vif.omon_cb.Psel;
+        xtn.Penable = vif.omon_cb.Penable;
+            xtn.Prdata = vif.omon_cb.Prdata;
+ //   xtn.print();
+    `uvm_info("SLAVE MONITOR",xtn.sprint,UVM_MEDIUM)
+    monitor_port.write(xtn);
+      end
+  endtask
+  
+endclass
+    
+    
